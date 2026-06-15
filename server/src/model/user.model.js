@@ -1,0 +1,22 @@
+import { ROLES } from "../constant/model.constant.js";
+import { model, Schema } from "mongoose";
+
+const userSchema = new Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true },
+    role: { type: String, enum: Object.values(ROLES), default: ROLES.SCORER },
+    status: { type: String, enum: ["ACTIVE", "INACTIVE"], default: "ACTIVE" },
+    refreshToken: { type: String, default: null },
+    isDeleted: { type: Boolean, default: false },
+    picture: {
+      type:String,
+      default: "https://px.pixxo.io/test/user.png"
+    }
+  },
+  { timestamps: true }
+)
+
+const userModel = model("User", userSchema);
+export default userModel;
