@@ -1,29 +1,24 @@
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import Loader from './Loader';
+/**
+ * Protected Route Component
+ * Routes that require authentication and specific roles
+ */
 
-export default function ProtectedRoute({ children, allowedRoles }) {
-  const { isAuthenticated, user, isLoading } = useSelector((state) => state.auth);
+import { useAuthStore } from '../context/authStore';
+import { Navigate, useLocation } from 'react-router-dom';
+
+export const ProtectedRoute = ({ children, requiredRoles = [] }) => {
+  const { isAuthenticated, user } = useAuthStore();
   const location = useLocation();
 
-  if (isLoading) {
-    return (
-      <div className="flex-center" style={{ minHeight: '60vh' }}>
-        <Loader message="Authenticating user..." />
-      </div>
-    );
-  }
-
   if (!isAuthenticated) {
-    // Redirect to login page and preserve the location we were trying to access
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && (!user || !allowedRoles.includes(user.role))) {
-    // Redirect unauthorized users to home page
-    return <Navigate to="/" replace />;
+  if (requiredRoles.length > 0 && !requiredRoles.includes(user?.role)) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return children;
-}
+};
+
+export default ProtectedRoute;

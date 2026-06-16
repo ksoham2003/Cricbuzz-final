@@ -1,98 +1,183 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Provider, useDispatch, useSelector } from 'react-redux';
-import store from './redux/store';
-import { fetchMe } from './redux/slices/authSlice';
+/**
+ * Main App Component
+ * Routing configuration and main layout
+ */
 
-// Components & Layout
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import ProtectedRoute from './components/ProtectedRoute';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuthStore } from './context/authStore';
+import { initSocket } from './services/socket';
+import { useEffect } from 'react';
+
 
 // Pages
-import Home from './pages/Home';
-import MatchCenter from './pages/MatchCenter';
-import SeriesList from './pages/SeriesList';
-import SeriesDetails from './pages/SeriesDetails';
-import Teams from './pages/Teams';
-import TeamDetails from './pages/TeamDetails';
-import Players from './pages/Players';
-import PlayerDetails from './pages/PlayerDetails';
-import Search from './pages/Search';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ScorerDashboard from './pages/ScorerDashboard';
-import ScorerPanel from './pages/ScorerPanel';
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import DashboardPage from './pages/DashboardPage';
+import SeriesPage from './pages/SeriesPage';
+import TeamsPage from './pages/TeamsPage';
+import PlayersPage from './pages/PlayersPage';
+import SquadsPage from './pages/SquadsPage';
+import MatchesPage from './pages/MatchesPage';
+import ScoringPage from './pages/ScoringPage';
+import UsersPage from './pages/UsersPage';
 
-// AppWrapper handles fetching current logged-in user on mount
-function AppWrapper({ children }) {
-  const dispatch = useDispatch();
-  const token = localStorage.getItem('cricbuzz_token');
+// Components
+import ProtectedRoute from './components/ProtectedRoute';
+import MainLayout from './layouts/MainLayout';
 
-  useEffect(() => {
-    if (token) {
-      dispatch(fetchMe());
-    }
-  }, [dispatch, token]);
-
-  return <>{children}</>;
-}
+// Styles
+import './styles/globals.css';
+import './App.css';
 
 function App() {
+  const { isAuthenticated, getCurrentUser } = useAuthStore();
+
+  useEffect(() => {
+    // Initialize socket connection if authenticated
+    if (isAuthenticated) {
+      initSocket();
+      getCurrentUser().catch(() => {
+        // Silent failure - user session may have expired
+      });
+    }
+  }, [isAuthenticated, getCurrentUser]);
+
   return (
-    <Provider store={store}>
-      <BrowserRouter>
-        <AppWrapper>
-          <div className="app-layout">
-            <Navbar />
-            <main className="main-content">
-              <Routes>
-                {/* Public Fan Routes */}
-                <Route path="/" element={<Home />} />
-                <Route path="/matches/:matchId" element={<MatchCenter />} />
-                
-                <Route path="/series" element={<SeriesList />} />
-                <Route path="/series/:seriesId" element={<SeriesDetails />} />
-                
-                <Route path="/teams" element={<Teams />} />
-                <Route path="/teams/:teamId" element={<TeamDetails />} />
-                
-                <Route path="/players" element={<Players />} />
-                <Route path="/players/:playerId" element={<PlayerDetails />} />
-                
-                <Route path="/search" element={<Search />} />
-                
-                {/* Auth Routes */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
+    <Router>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-                {/* Protected Scorer Dashboard */}
-                <Route
-                  path="/scorer"
-                  element={
-                    <ProtectedRoute allowedRoles={['SCORER', 'ADMIN', 'SUPER_ADMIN']}>
-                      <ScorerDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/scorer/match/:matchId"
-                  element={
-                    <ProtectedRoute allowedRoles={['SCORER', 'ADMIN', 'SUPER_ADMIN']}>
-                      <ScorerPanel />
-                    </ProtectedRoute>
-                  }
-                />
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <DashboardPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
 
-                {/* Fallback Redirect */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
-        </AppWrapper>
-      </BrowserRouter>
-    </Provider>
+        {/* Admin Routes */}
+        <Route
+          path="/series"
+          element={
+            <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'ADMIN']}>
+              <MainLayout>
+                <SeriesPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/teams"
+          element={
+            <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'ADMIN']}>
+              <MainLayout>
+                <TeamsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/players"
+          element={
+            <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'ADMIN']}>
+              <MainLayout>
+                <PlayersPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/squads"
+          element={
+            <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'ADMIN']}>
+              <MainLayout>
+                <SquadsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/matches"
+          element={
+            <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'ADMIN']}>
+              <MainLayout>
+                <MatchesPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Scorer Routes */}
+        <Route
+          path="/live-scoring"
+          element={
+            <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'ADMIN', 'SCORER']}>
+              <MainLayout>
+                <ScoringPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Super Admin Routes */}
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute requiredRoles={['SUPER_ADMIN']}>
+              <MainLayout>
+                <UsersPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 404 and Unauthorized */}
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Router>
+  );
+}
+
+/**
+ * Unauthorized Page
+ */
+function UnauthorizedPage() {
+  return (
+    <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+      <h1>403 - Unauthorized</h1>
+      <p>You don't have permission to access this resource.</p>
+      <a href="/dashboard" className="btn btn-primary">
+        Go to Dashboard
+      </a>
+    </div>
+  );
+}
+
+/**
+ * Not Found Page
+ */
+function NotFoundPage() {
+  return (
+    <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+      <h1>404 - Page Not Found</h1>
+      <p>The page you're looking for doesn't exist.</p>
+      <a href="/dashboard" className="btn btn-primary">
+        Go to Dashboard
+      </a>
+    </div>
   );
 }
 
